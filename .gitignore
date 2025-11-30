@@ -1,0 +1,9 @@
+# Bỏ qua file Python bytecode
+__pycache__/
+*.pyc
+
+# Bỏ qua file log
+*.log
+
+# Bỏ qua file hệ thống
+.DS_Store

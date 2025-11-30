@@ -4,11 +4,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from db import connect_mysql
 from datetime import datetime
+from tkcalendar import DateEntry
 
 def open_crud_window(root, title, table, columns, headers, form_fields):
     """
-    - title: window title (Vietnamese label visible)
-    - table: db table name (Vietnamese)
+    - title: window title
+    - table: db table name
     - columns: list of db column names in same order as headers
     - headers: display headers for Treeview
     - form_fields: list of (label_text, db_col) for form inputs
@@ -17,7 +18,6 @@ def open_crud_window(root, title, table, columns, headers, form_fields):
     win.title(title)
     win.geometry("900x520")
     win.transient(root)
-    win.grab_set()
 
     # top: search
     search_frame = tk.Frame(win, padx=6, pady=6)
@@ -56,13 +56,22 @@ def open_crud_window(root, title, table, columns, headers, form_fields):
     tk.Button(search_frame, text="Tìm", command=search_action).pack(side="left", padx=4)
     search_entry.bind("<Return>", search_action)
 
+    
+    date_columns = {"ngay_sinh"}  # set chứa tên các cột cần DateEntry
+    
     # middle: form
     form_frame = tk.LabelFrame(win, text="Thông tin", padx=6, pady=6)
     form_frame.pack(fill="x", padx=6, pady=4)
+
     entries = {}
     for i, (label_text, db_col) in enumerate(form_fields):
         tk.Label(form_frame, text=label_text).grid(row=i, column=0, sticky="w", padx=4, pady=3)
-        ent = tk.Entry(form_frame, width=50)
+        
+        if db_col in date_columns:
+            ent = DateEntry(form_frame, width=20, date_pattern='yyyy-mm-dd')  # chuẩn MySQL
+        else:
+            ent = tk.Entry(form_frame, width=50)
+        
         ent.grid(row=i, column=1, padx=4, pady=3)
         entries[db_col] = ent
 
@@ -89,7 +98,7 @@ def open_crud_window(root, title, table, columns, headers, form_fields):
             if cn: cn.close()
 
     def add_record():
-        vals = [entries.get(c).get().strip() if entries.get(c) else "" for c in columns]
+        vals = [entries.get(c).get().strip() if entries.get(c) else "" for c in columns[1:]]
         if vals[0] == "":
             messagebox.showwarning("Thiếu dữ liệu", f"Nhập {form_fields[0][0]}")
             return
@@ -97,8 +106,8 @@ def open_crud_window(root, title, table, columns, headers, form_fields):
         try:
             cn = connect_mysql()
             cur = cn.cursor()
-            placeholders = ", ".join(["%s"] * len(columns))
-            cur.execute(f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})", tuple(vals))
+            placeholders = ", ".join(["%s"] * (len(columns) - 1))
+            cur.execute(f"INSERT INTO {table} ({', '.join(columns[1:])}) VALUES ({placeholders})", tuple(vals))
             cn.commit()
             refresh(); clear_form()
             messagebox.showinfo("OK", "Đã thêm")
