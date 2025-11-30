@@ -1,205 +1,278 @@
-# invoices.py
-# Simple invoice window: create invoice, write into hoadon & ct_hoadon, update stock, export to excel
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox
 from db import connect_mysql
-from datetime import datetime
 from openpyxl import Workbook
-import os
+from datetime import datetime
 
 def open_invoice_window(root):
     win = tk.Toplevel(root)
-    win.title("Lập Hóa Đơn")
-    win.geometry("900x600")
-    win.grab_set()
+    win.title("Lập hóa đơn")
+    win.geometry("950x650")
 
-    # header area: choose customer and staff
-    hdr = tk.Frame(win, padx=6, pady=6)
-    hdr.pack(fill="x")
-    tk.Label(hdr, text="Khách hàng:").grid(row=0, column=0, sticky="w")
-    cb_customer = ttk.Combobox(hdr, width=40, state="readonly")
-    cb_customer.grid(row=0, column=1, padx=6)
-    tk.Label(hdr, text="Nhân viên:").grid(row=1, column=0, sticky="w")
-    cb_staff = ttk.Combobox(hdr, width=40, state="readonly")
-    cb_staff.grid(row=1, column=1, padx=6)
-
-    # load lists
-    prod_map = {}
-    def load_lists():
+    # ================================
+    # TẢI DỮ LIỆU TỪ MYSQL
+    # ================================
+    def load_staff():
         cn = connect_mysql()
         cur = cn.cursor()
-        cur.execute("SELECT id_khachhang, ho_ten FROM khachhang")
-        customers = cur.fetchall()
-        cb_customer['values'] = [f"{r[0]} - {r[1]}" for r in customers]
-        cur.execute("SELECT id_nv, ho_ten FROM nhanvien")
-        staffs = cur.fetchall()
-        cb_staff['values'] = [f"{r[0]} - {r[1]}" for r in staffs]
-        # products
-        cur.execute("SELECT id_sanpham, ten_sanpham, gia, so_luong FROM sanpham")
-        prods = cur.fetchall()
-        prod_map.clear()
-        cb_products['values'] = [f"{r[0]} - {r[1]} (Giá: {int(r[2])}, Tồn: {r[3]})" for r in prods]
-        for r in prods:
-            prod_map[r[0]] = {"ten": r[1], "gia": float(r[2]), "so": int(r[3])}
+        cur.execute("SELECT id_nv, ho_ten, sdt, dia_chi FROM nhanvien")
+        data = cur.fetchall()
         cn.close()
+        return data
 
-    # product selection
-    prod_frame = tk.Frame(win, padx=6, pady=6)
-    prod_frame.pack(fill="x")
-    tk.Label(prod_frame, text="Sản phẩm:").grid(row=0, column=0, sticky="w")
-    cb_products = ttk.Combobox(prod_frame, width=60, state="readonly")
-    cb_products.grid(row=0, column=1, padx=6)
-    tk.Label(prod_frame, text="Số lượng:").grid(row=1, column=0, sticky="w")
-    entry_qty = tk.Entry(prod_frame, width=10); entry_qty.insert(0, "1")
-    entry_qty.grid(row=1, column=1, sticky="w")
+    def load_customer():
+        cn = connect_mysql()
+        cur = cn.cursor()
+        cur.execute("SELECT id_khachhang, ho_ten, sdt, dia_chi FROM khachhang")
+        data = cur.fetchall()
+        cn.close()
+        return data
 
-    # cart
-    cart_frame = tk.Frame(win)
-    cart_frame.pack(fill="both", expand=True, padx=6, pady=6)
-    cols = ("id_sp","ten","so_luong","don_gia","thanh_tien")
-    tree = ttk.Treeview(cart_frame, columns=cols, show="headings", height=10)
-    for c in cols:
-        tree.heading(c, text=c)
+    def load_product():
+        cn = connect_mysql()
+        cur = cn.cursor()
+        cur.execute("SELECT id_sanpham, ten_sanpham, gia FROM sanpham")
+        data = cur.fetchall()
+        cn.close()
+        return data
+
+    staff_list = load_staff()
+    customer_list = load_customer()
+    product_list = load_product()
+
+    # ================================
+    # THÔNG TIN HÓA ĐƠN
+    # ================================
+    frame_info = tk.LabelFrame(win, text="Thông tin hóa đơn")
+    frame_info.pack(fill="x", padx=5, pady=5)
+
+    # ===== Nhân viên =====
+    tk.Label(frame_info, text="Nhân viên:").grid(row=0, column=0, sticky="w")
+    cbo_nv = ttk.Combobox(frame_info, width=25,
+                          values=[f"{r[0]} - {r[1]}" for r in staff_list])
+    cbo_nv.grid(row=0, column=1, padx=5)
+
+    tk.Label(frame_info, text="Tên NV:").grid(row=1, column=0, sticky="w")
+    ten_nv = tk.Entry(frame_info, width=25); ten_nv.grid(row=1, column=1, padx=5)
+
+    tk.Label(frame_info, text="SĐT NV:").grid(row=1, column=2, sticky="w")
+    sdt_nv = tk.Entry(frame_info, width=20); sdt_nv.grid(row=1, column=3, padx=5)
+
+    tk.Label(frame_info, text="Địa chỉ NV:").grid(row=1, column=4, sticky="w")
+    dc_nv = tk.Entry(frame_info, width=30); dc_nv.grid(row=1, column=5, padx=5)
+
+    def on_staff_select(e):
+        if not cbo_nv.get():
+            return
+    
+        id_sel = int(cbo_nv.get().split(" - ")[0])
+        for r in staff_list:
+            if r[0] == id_sel:
+    
+                # Mở để ghi dữ liệu
+                ten_nv.config(state="normal")
+                sdt_nv.config(state="normal")
+                dc_nv.config(state="normal")
+    
+                ten_nv.delete(0, tk.END)
+                ten_nv.insert(0, r[1])
+    
+                sdt_nv.delete(0, tk.END)
+                sdt_nv.insert(0, r[2])
+    
+                dc_nv.delete(0, tk.END)
+                dc_nv.insert(0, r[3])
+    
+                # KHÓA HOÀN TOÀN
+                ten_nv.config(state="disabled")
+                sdt_nv.config(state="disabled")
+                dc_nv.config(state="disabled")
+                break
+
+    cbo_nv.bind("<<ComboboxSelected>>", on_staff_select)
+
+    # ===== Khách hàng =====
+    tk.Label(frame_info, text="Khách hàng:").grid(row=2, column=0, sticky="w")
+    cbo_kh = ttk.Combobox(frame_info, width=25,
+                          values=[f"{r[0]} - {r[1]}" for r in customer_list])
+    cbo_kh.grid(row=2, column=1, padx=5)
+
+    tk.Label(frame_info, text="Tên KH:").grid(row=3, column=0, sticky="w")
+    ten_kh = tk.Entry(frame_info, width=25); ten_kh.grid(row=3, column=1, padx=5)
+
+    tk.Label(frame_info, text="SĐT KH:").grid(row=3, column=2, sticky="w")
+    sdt_kh = tk.Entry(frame_info, width=20); sdt_kh.grid(row=3, column=3, padx=5)
+
+    tk.Label(frame_info, text="Địa chỉ KH:").grid(row=3, column=4, sticky="w")
+    dc_kh = tk.Entry(frame_info, width=30); dc_kh.grid(row=3, column=5, padx=5)
+
+    def on_customer_select(e):
+        if not cbo_kh.get():
+            return
+    
+        id_sel = int(cbo_kh.get().split(" - ")[0])
+        for r in customer_list:
+            if r[0] == id_sel:
+    
+                ten_kh.config(state="normal")
+                sdt_kh.config(state="normal")
+                dc_kh.config(state="normal")
+    
+                ten_kh.delete(0, tk.END)
+                ten_kh.insert(0, r[1])
+    
+                sdt_kh.delete(0, tk.END)
+                sdt_kh.insert(0, r[2])
+    
+                dc_kh.delete(0, tk.END)
+                dc_kh.insert(0, r[3])
+    
+                ten_kh.config(state="disabled")
+                sdt_kh.config(state="disabled")
+                dc_kh.config(state="disabled")
+                break
+            
+
+
+    cbo_kh.bind("<<ComboboxSelected>>", on_customer_select)
+
+    # ===== Ngày =====
+    tk.Label(frame_info, text="Ngày lập:").grid(row=4, column=0, sticky="w")
+    ngay = tk.Entry(frame_info, width=15)
+    
+    today = datetime.now().strftime("%Y-%m-%d")   # YYYY-MM-DD
+    ngay.insert(0, today)
+    
+    # Khóa không cho sửa
+    ngay.config(state="disabled")
+    
+    ngay.grid(row=4, column=1, padx=5)
+
+    # ================================
+    # SẢN PHẨM – COMBOBOX
+    # ================================
+    frame_sp = tk.LabelFrame(win, text="Sản phẩm")
+    frame_sp.pack(fill="x", padx=5, pady=5)
+
+    tk.Label(frame_sp, text="Chọn sản phẩm:").grid(row=0, column=0)
+    cbo_sp = ttk.Combobox(frame_sp, width=30,
+                          values=[f"{r[0]} - {r[1]}" for r in product_list])
+    cbo_sp.grid(row=0, column=1, padx=5)
+
+    tk.Label(frame_sp, text="Giá:").grid(row=0, column=2)
+    gia_sp = tk.Entry(frame_sp, width=12, state="disabled")
+    gia_sp.grid(row=0, column=3, padx=5)
+
+    tk.Label(frame_sp, text="Số lượng:").grid(row=0, column=4)
+    sl = tk.Entry(frame_sp, width=10); sl.grid(row=0, column=5, padx=5)
+    sl.insert(0, "1") 
+
+    def on_product_select(e):
+        if not cbo_sp.get():
+            return
+    
+        id_sel = int(cbo_sp.get().split(" - ")[0])
+        for r in product_list:
+            if r[0] == id_sel:
+    
+                # mở để cập nhật
+                gia_sp.config(state="normal")
+                gia_sp.delete(0, tk.END)
+                gia_sp.insert(0, r[2])
+    
+                # khóa lại (không cho sửa)
+                gia_sp.config(state="disabled")
+                break
+
+    cbo_sp.bind("<<ComboboxSelected>>", on_product_select)
+
+    # ================================
+    # DANH SÁCH SẢN PHẨM TRONG HÓA ĐƠN
+    # ================================
+    tree = ttk.Treeview(win, columns=("id","ten","sl","gia","tien"), show="headings")
+    for c in ("id","ten","sl","gia","tien"):
+        tree.heading(c, text=c.upper())
         tree.column(c, width=120)
-    tree.pack(side="left", fill="both", expand=True)
-    ttk.Scrollbar(cart_frame, orient="vertical", command=tree.yview).pack(side="right", fill="y")
+    tree.pack(fill="both", expand=True, pady=5)
 
-    total_var = tk.StringVar(value="0")
-    tk.Label(win, text="Tổng:").pack(anchor="e", padx=8)
-    tk.Label(win, textvariable=total_var, font=("Arial", 12, "bold")).pack(anchor="e", padx=8)
-
-    def add_to_cart():
-        sel = cb_products.get()
-        if not sel:
+    def add_item():
+        if not cbo_sp.get():
+            messagebox.showwarning("Thiếu", "Hãy chọn sản phẩm")
             return
-        id_sp = int(sel.split(" - ")[0])
-        try:
-            qty = int(entry_qty.get())
-            if qty <= 0:
-                raise ValueError
-        except:
-            messagebox.showwarning("Lỗi", "Số lượng phải là số nguyên dương")
-            return
-        info = prod_map.get(id_sp)
-        if not info:
-            messagebox.showwarning("Lỗi", "Không tìm sản phẩm")
-            return
-        if qty > info["so"]:
-            messagebox.showwarning("Lỗi", f"Tồn kho không đủ: {info['so']}")
-            return
-        price = info["gia"]
-        amount = qty * price
-        tree.insert("", "end", values=(id_sp, info["ten"], qty, price, amount))
-        recalc_total()
 
-    def recalc_total():
-        s = 0
-        for it in tree.get_children():
-            s += float(tree.item(it, "values")[4])
-        total_var.set(f"{int(s):,}")
+        id_sp = int(cbo_sp.get().split(" - ")[0])
+        ten_sp = cbo_sp.get().split(" - ")[1]
+        so_luong = int(sl.get())
+        don_gia = float(gia_sp.get())
+        thanh_tien = so_luong * don_gia
 
-    def remove_selected():
-        sel = tree.selection()
-        for i in sel:
-            tree.delete(i)
-        recalc_total()
+        tree.insert("", "end", values=(id_sp, ten_sp, so_luong, don_gia, thanh_tien))
 
+    # ================================
+    # LƯU HÓA ĐƠN
+    # ================================
     def save_invoice():
-        if not cb_customer.get() or not cb_staff.get():
-            messagebox.showwarning("Thiếu", "Chọn khách hàng và nhân viên")
+        if not cbo_nv.get() or not cbo_kh.get():
+            messagebox.showwarning("Thiếu", "Hãy chọn nhân viên và khách hàng")
             return
-        if not tree.get_children():
-            messagebox.showwarning("Thiếu", "Chưa có sản phẩm")
-            return
-        id_kh = int(cb_customer.get().split(" - ")[0])
-        id_nv = int(cb_staff.get().split(" - ")[0])
-        ngay = datetime.now().strftime("%Y-%m-%d")
-        tong = 0
-        items = []
-        for it in tree.get_children():
-            id_sp, ten, qty, dg, tt = tree.item(it, "values")
-            items.append((int(id_sp), int(qty), float(dg), float(tt)))
-            tong += float(tt)
-        # write to DB
+    
+        id_nv = int(cbo_nv.get().split(" - ")[0])
+        id_kh = int(cbo_kh.get().split(" - ")[0])
+    
         cn = connect_mysql()
         cur = cn.cursor()
+    
+        # Tạo hóa đơn trước
+        cur.execute(
+            "INSERT INTO hoadon(id_nv,id_khachhang,ngay_lap,tong_tien) VALUES (%s,%s,%s,%s)",
+            (id_nv, id_kh, ngay.get(), 0)
+        )
+        cn.commit()
+    
+        id_hd = cur.lastrowid
+        total = 0.0
+    
+        for r in tree.get_children():
+            row = tree.item(r)["values"]
+    
+            id_sp = int(row[0])
+            so_luong = int(row[2])
+            don_gia = float(row[3])
+            thanh_tien = float(row[4])   # ÉP KIỂU TẠI ĐÂY
+    
+            cur.execute(
+                "INSERT INTO ct_hoadon(id_hoadon,id_sanpham,so_luong,don_gia,thanh_tien) VALUES (%s,%s,%s,%s,%s)",
+                (id_hd, id_sp, so_luong, don_gia, thanh_tien)
+            )
+    
+            total += thanh_tien   # GIỜ không bị lỗi nữa
+    
+        cur.execute("UPDATE hoadon SET tong_tien=%s WHERE id_hoadon=%s", (total, id_hd))
+        cn.commit()
+    
+        messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
+        
+
+    # ================================
+    # IN HÓA ĐƠN – openpyxl
+    # ================================
+    def print_invoice():
         try:
-            cur.execute("INSERT INTO hoadon(id_nv, id_khachhang, ngay_lap, tong_tien) VALUES (%s,%s,%s,%s)", (id_nv, id_kh, ngay, tong))
-            cn.commit()
-            # get last inserted id
-            cur.execute("SELECT LAST_INSERT_ID()")
-            id_hd = cur.fetchone()[0]
-            for id_sp, qty, dg, tt in items:
-                cur.execute("INSERT INTO ct_hoadon(id_hoadon, id_sanpham, so_luong, don_gia, thanh_tien) VALUES (%s,%s,%s,%s,%s)",
-                            (id_hd, id_sp, qty, dg, tt))
-                # update stock
-                cur.execute("UPDATE sanpham SET so_luong = so_luong - %s WHERE id_sanpham = %s", (qty, id_sp))
-            cn.commit()
-            messagebox.showinfo("OK", f"Lưu hóa đơn {id_hd} thành công")
-            win.destroy()
-            # offer to export
-            if messagebox.askyesno("Xuất", "Xuất hóa đơn vừa tạo ra Excel?"):
-                export_invoice_excel(id_hd)
+            cn = connect_mysql()
+            cur = cn.cursor()
+            cur.execute("SELECT * FROM hoadon ORDER BY id_hoadon DESC LIMIT 1")
+            hd = cur.fetchone()
+
+            wb = Workbook()
+            ws = wb.active
+            ws.append(["ID", "ID NV", "ID KH", "Ngày lập", "Tổng tiền"])
+            ws.append(list(hd))
+
+            wb.save("hoadon_moi_nhat.xlsx")
+            messagebox.showinfo("OK", "Đã in hóa đơn ra file hoadon_moi_nhat.xlsx")
         except Exception as e:
-            cn.rollback()
-            messagebox.showerror("Lỗi DB", str(e))
-        finally:
-            cur.close()
-            cn.close()
+            messagebox.showerror("Lỗi", str(e))
 
-    def export_invoice_excel(invoice_id):
-        # fetch info + items
-        cn = connect_mysql()
-        cur = cn.cursor()
-        cur.execute("""
-            SELECT h.id_hoadon, h.ngay_lap, kh.ho_ten, nv.ho_ten, h.tong_tien
-            FROM hoadon h
-            LEFT JOIN khachhang kh ON h.id_khachhang = kh.id_khachhang
-            LEFT JOIN nhanvien nv ON h.id_nv = nv.id_nv
-            WHERE h.id_hoadon = %s
-        """, (invoice_id,))
-        info = cur.fetchone()
-        if not info:
-            messagebox.showerror("Lỗi", "Không tìm hóa đơn")
-            cur.close(); cn.close(); return
-        cur.execute("""
-            SELECT ct.id_sanpham, sp.ten_sanpham, ct.so_luong, ct.don_gia, ct.thanh_tien
-            FROM ct_hoadon ct
-            LEFT JOIN sanpham sp ON ct.id_sanpham = sp.id_sanpham
-            WHERE ct.id_hoadon = %s
-        """, (invoice_id,))
-        items = cur.fetchall()
-        cur.close(); cn.close()
-
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "HóaĐơn"
-        ws.append(["HÓA ĐƠN BÁN HÀNG"])
-        ws.append(["Mã HĐ", info[0], "", "Ngày", str(info[1])])
-        ws.append(["Khách hàng", info[2], "", "Nhân viên", info[3]])
-        ws.append([])
-        ws.append(["STT", "Tên SP", "Số lượng", "Đơn giá", "Thành tiền"])
-        for i, it in enumerate(items, start=1):
-            ws.append([i, it[1], it[2], float(it[3]), float(it[4])])
-        ws.append([])
-        ws.append(["", "", "", "Tổng", float(info[4])])
-
-        file = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel","*.xlsx")],
-                                            initialfile=f"HoaDon_{invoice_id}.xlsx")
-        if file:
-            wb.save(file)
-            messagebox.showinfo("OK", f"Đã lưu: {file}")
-            try:
-                os.startfile(file)
-            except:
-                pass
-
-    # controls
-    ctl = tk.Frame(win)
-    ctl.pack(fill="x", padx=6, pady=6)
-    tk.Button(ctl, text="Thêm vào HĐ", command=add_to_cart).pack(side="left", padx=6)
-    tk.Button(ctl, text="Xóa mục", command=remove_selected).pack(side="left", padx=6)
-    tk.Button(ctl, text="Lưu HĐ", command=save_invoice, bg="#90ee90").pack(side="right", padx=6)
-    tk.Button(ctl, text="Đóng", command=win.destroy).pack(side="right", padx=6)
-
-    load_lists()
+    tk.Button(frame_sp, text="Thêm SP", command=add_item).grid(row=0, column=6, padx=5)
+    tk.Button(win, text="Lưu hóa đơn", width=15, command=save_invoice).pack(pady=5)
+    tk.Button(win, text="In hóa đơn", width=15, command=print_invoice).pack(pady=5)
