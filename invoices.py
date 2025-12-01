@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from db import connect_mysql
 from openpyxl import Workbook
 from datetime import datetime
+from openpyxl.styles import Font, Alignment, Border, Side
 
 def open_invoice_window(root):
     win = tk.Toplevel(root)
@@ -204,6 +205,8 @@ def open_invoice_window(root):
         cn.commit()
 
         id_hd = cur.lastrowid
+        global last_invoice_id
+        last_invoice_id = cur.lastrowid
         total = 0.0
 
         for r in tree.get_children():
@@ -222,23 +225,79 @@ def open_invoice_window(root):
         cn.commit()
 
         messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
+        
+        # Bật nút in và gán ID vừa lưu
+        btn_print.config(state="normal", command=lambda: print_invoice(id_hd))
 
-    def print_invoice():
+
+    def print_invoice(invoice_id):
         try:
             cn = connect_mysql()
             cur = cn.cursor()
-            cur.execute("SELECT * FROM hoadon ORDER BY id_hoadon DESC LIMIT 1")
-            hd = cur.fetchone()
-
+    
+            # Lấy thông tin hóa đơn + chi tiết
+            cur.execute("""
+                SELECT hd.id_hoadon, hd.ngay_lap, hd.tong_tien,
+                       nv.ho_ten, nv.sdt, nv.dia_chi,
+                       kh.ho_ten, kh.sdt, kh.dia_chi,
+                       sp.ten_sanpham, cthd.so_luong, cthd.don_gia, cthd.thanh_tien
+                FROM hoadon hd
+                JOIN nhanvien nv ON hd.id_nv = nv.id_nv
+                JOIN khachhang kh ON hd.id_khachhang = kh.id_khachhang
+                JOIN ct_hoadon cthd ON hd.id_hoadon = cthd.id_hoadon
+                JOIN sanpham sp ON cthd.id_sanpham = sp.id_sanpham
+                WHERE hd.id_hoadon = %s
+            """, (invoice_id,))
+            rows = cur.fetchall()
+            if not rows:
+                print("Không tìm thấy hóa đơn")
+                return
+    
             wb = Workbook()
             ws = wb.active
-            ws.append(["ID", "ID NV", "ID KH", "Ngày lập", "Tổng tiền"])
-            ws.append(list(hd))
-
-            wb.save("hoadon_moi_nhat.xlsx")
-            messagebox.showinfo("OK", "Đã in hóa đơn ra file hoadon_moi_nhat.xlsx")
-        except Exception as e:
-            messagebox.showerror("Lỗi", str(e))
+    
+            # ========= Tiêu đề =========
+            ws.merge_cells("A1:D1")
+            ws["A1"] = "HÓA ĐƠN"
+            ws["A1"].font = Font(size=20, bold=True)
+            ws["A1"].alignment = Alignment(horizontal="center")
+    
+            # ========= Thông tin chung =========
+            ws.append([])
+            ws.append(["Mã HĐ:", rows[0][0]])
+            ws.append(["Ngày lập:", rows[0][1]])
+            ws.append(["Tổng tiền:", rows[0][2]])
+            ws.append([])
+            ws.append(["Nhân viên", "SĐT NV", "Địa chỉ NV", "Khách hàng", "SĐT KH", "Địa chỉ KH"])
+            ws.append([rows[0][3], rows[0][4], rows[0][5], rows[0][6], rows[0][7], rows[0][8]])
+    
+            # ========= Bảng chi tiết sản phẩm =========
+            ws.append([])
+            ws.append(["Sản phẩm", "Số lượng", "Đơn giá", "Thành tiền"])
+    
+            # Border style
+            thin_border = Border(left=Side(style='thin'),
+                                 right=Side(style='thin'),
+                                 top=Side(style='thin'),
+                                 bottom=Side(style='thin'))
+    
+            start_row = ws.max_row + 1
+            for r in rows:
+                ws.append([r[9], r[10], r[11], r[12]])
+    
+            # Thêm border cho bảng
+            for row in ws.iter_rows(min_row=start_row, max_row=ws.max_row,
+                                    min_col=1, max_col=4):
+                for cell in row:
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal="center")
+    
+            wb.save(f"invoice_{invoice_id}.xlsx")
+            print(f"Đã xuất hóa đơn ra invoice_{invoice_id}.xlsx")
+    
+        finally:
+            cur.close()
+            cn.close()
 
     # ---------------- NÚT LƯU + IN ----------------
     actions_frame = tk.Frame(win)
@@ -247,7 +306,12 @@ def open_invoice_window(root):
     tk.Button(actions_frame, text="Lưu hóa đơn", width=15, command=save_invoice)\
         .pack(side=tk.LEFT, padx=15)
 
-    tk.Button(actions_frame, text="In hóa đơn", width=15, command=print_invoice)\
-        .pack(side=tk.LEFT, padx=15)
+    
+   
+    # Tạo nút in hóa đơn nhưng disable ban đầu
+    btn_print = tk.Button(actions_frame, text="In hóa đơn", width=15, state="disabled")
+    btn_print.pack(side=tk.LEFT, padx=15)
+
+
 
     actions_frame.pack(anchor="center")

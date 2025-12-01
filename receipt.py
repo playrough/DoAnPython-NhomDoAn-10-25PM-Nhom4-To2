@@ -4,7 +4,7 @@ from datetime import date
 from db import connect_mysql
 
 
-def open_phieunhap_window(root):
+def open_receipt_window(root):
     win = tk.Toplevel(root)
     win.title("Lập Phiếu Nhập")
     win.geometry("750x550")
@@ -112,7 +112,7 @@ def open_phieunhap_window(root):
 
     # =========== LƯU PHIẾU NHẬP ===========
 
-    def save_phieunhap():
+    def save_receipt():
         if len(tree.get_children()) == 0:
             messagebox.showwarning("Thiếu dữ liệu", "Chưa có sản phẩm")
             return
@@ -154,4 +154,4 @@ def open_phieunhap_window(root):
             messagebox.showerror("Lỗi", str(e))
 
     tk.Button(win, text="LƯU PHIẾU NHẬP", font=("Arial", 14), bg="#4CAF50", fg="white",
-              command=save_phieunhap).pack(pady=10)
+              command=save_receipt).pack(pady=10)

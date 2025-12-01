@@ -4,7 +4,7 @@ import sys
 from tkinter import messagebox
 from crud import open_crud
 from invoices import open_invoice_window
-from phieunhap import open_phieunhap_window
+from receipt import open_receipt_window
 
 def start_app():
     try:
@@ -69,7 +69,7 @@ def start_app():
     m_hd = tk.Menu(menu, tearoff=0)
     menu.add_cascade(label="Hóa đơn", menu=m_hd)
     m_hd.add_command(label="Lập hóa đơn", command=lambda: open_invoice_window(root))
-    m_hd.add_command(label="Lập phiếu nhập", command=lambda: open_phieunhap_window(root))
+    m_hd.add_command(label="Lập phiếu nhập", command=lambda: open_receipt_window(root))
 
     m_exit = tk.Menu(menu, tearoff=0)
     menu.add_cascade(label="Hệ thống", menu=m_exit)
