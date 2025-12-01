@@ -21,11 +21,6 @@ def open_crud(root, title, table, columns, headers, fields):
     lbl_title = tk.Label(win, text=title, font=("Arial", 20, "bold"), fg="blue")
     lbl_title.pack(pady=(10, 5))
 
-    # ======= SEARCH BAR =======
-    # tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))
-    # search_box = tk.Entry(win, width=40)
-    # search_box.pack(anchor="w", padx=10, pady=(0, 8))
-
     # ======= SEARCH BAR (ENTRY + BUTTON) =======
     frm_search = tk.Frame(win)
     frm_search.pack(fill="x", padx=10, pady=(8, 2))
