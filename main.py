@@ -75,8 +75,7 @@ def start_app():
 
     # ===== Giao diện trang chủ =====
     # Tiêu đề
-    title = tk.Label(root, text="HỆ THỐNG QUẢN LÝ CỬA HÀNG TIVI",
-                     font=("Arial", 24, "bold"), bg="#f5f5f5", fg="#2c3e50")
+    title = tk.Label(root, text="HỆ THỐNG QUẢN LÝ CỬA HÀNG TIVI", font=("Arial", 24, "bold"), bg="#f5f5f5", fg="#2c3e50")
     title.pack(pady=20)
 
     # Thông tin giới thiệu

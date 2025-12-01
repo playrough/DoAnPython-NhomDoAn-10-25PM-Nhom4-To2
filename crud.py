@@ -9,6 +9,7 @@ def open_crud(root, title, table, columns, headers, fields):
     win = tk.Toplevel(root)
     win.title(title)
     win.geometry("950x550")
+    win.grab_set()
 
     # ======= SEARCH BAR =======
     tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))
