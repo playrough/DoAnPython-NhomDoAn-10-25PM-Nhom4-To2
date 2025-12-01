@@ -4,11 +4,21 @@ from db import connect_mysql
 from openpyxl import Workbook
 from datetime import datetime
 from openpyxl.styles import Font, Alignment, Border, Side
+from utils import center_window
+
+
 
 def open_invoice_window(root):
     win = tk.Toplevel(root)
     win.title("Lập hóa đơn")
     win.geometry("950x680")
+
+    win.transient(root)        # cửa sổ thuộc root
+    win.grab_set()             # khóa focus, root không thể tự nhảy lên
+    win.lift()                 # luôn nằm trên
+    win.focus_force()          # focus vào Toplevel
+
+    center_window(win, 900, 700)
     
     lbl_title = tk.Label(win, text="Hóa Đơn", font=("Arial", 20, "bold"), fg="blue")
     lbl_title.pack(pady=(10, 5))
@@ -193,44 +203,104 @@ def open_invoice_window(root):
     # ===========================================================
     #                       LƯU / IN HÓA ĐƠN
     # ===========================================================
-    def save_invoice():
-        if not cbo_nv.get() or not cbo_kh.get():
-            messagebox.showwarning("Thiếu", "Hãy chọn nhân viên và khách hàng")
-            return
+    # def save_invoice():
+    #     if not cbo_nv.get() or not cbo_kh.get():
+    #         messagebox.showwarning("Thiếu", "Hãy chọn nhân viên và khách hàng")
+    #         return
 
-        id_nv = int(cbo_nv.get().split(" - ")[0])
-        id_kh = int(cbo_kh.get().split(" - ")[0])
+    #     id_nv = int(cbo_nv.get().split(" - ")[0])
+    #     id_kh = int(cbo_kh.get().split(" - ")[0])
 
-        cn = connect_mysql()
-        cur = cn.cursor()
-        cur.execute("INSERT INTO hoadon(id_nv,id_khachhang,ngay_lap,tong_tien) VALUES (%s,%s,%s,%s)",
-                    (id_nv, id_kh, ngay.get(), 0))
-        cn.commit()
+    #     cn = connect_mysql()
+    #     cur = cn.cursor()
+    #     cur.execute("INSERT INTO hoadon(id_nv,id_khachhang,ngay_lap,tong_tien) VALUES (%s,%s,%s,%s)",
+    #                 (id_nv, id_kh, ngay.get(), 0))
+    #     cn.commit()
 
-        id_hd = cur.lastrowid
-        global last_invoice_id
-        last_invoice_id = cur.lastrowid
-        total = 0.0
+    #     id_hd = cur.lastrowid
+    #     global last_invoice_id
+    #     last_invoice_id = cur.lastrowid
+    #     total = 0.0
 
-        for r in tree.get_children():
-            row = tree.item(r)["values"]
-            id_sp = int(row[0])
-            so_luong = int(row[2])
-            don_gia = float(row[3])
-            thanh_tien = float(row[4])
+    #     for r in tree.get_children():
+    #         row = tree.item(r)["values"]
+    #         id_sp = int(row[0])
+    #         so_luong = int(row[2])
+    #         don_gia = float(row[3])
+    #         thanh_tien = float(row[4])
 
-            cur.execute("INSERT INTO ct_hoadon(id_hoadon,id_sanpham,so_luong,don_gia,thanh_tien) "
-                        "VALUES (%s,%s,%s,%s,%s)",
-                        (id_hd, id_sp, so_luong, don_gia, thanh_tien))
-            total += thanh_tien
+    #         cur.execute("INSERT INTO ct_hoadon(id_hoadon,id_sanpham,so_luong,don_gia,thanh_tien) "
+    #                     "VALUES (%s,%s,%s,%s,%s)",
+    #                     (id_hd, id_sp, so_luong, don_gia, thanh_tien))
+    #         total += thanh_tien
 
-        cur.execute("UPDATE hoadon SET tong_tien=%s WHERE id_hoadon=%s", (total, id_hd))
-        cn.commit()
+    #     cur.execute("UPDATE hoadon SET tong_tien=%s WHERE id_hoadon=%s", (total, id_hd))
+    #     cn.commit()
 
-        messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
+    #     messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
         
-        # Bật nút in và gán ID vừa lưu
-        btn_print.config(state="normal", command=lambda: print_invoice(id_hd))
+    #     # Bật nút in và gán ID vừa lưu
+    #     btn_print.config(state="normal", command=lambda: print_invoice(id_hd))
+
+    def save_invoice():
+        try:
+            if not cbo_nv.get() or not cbo_kh.get():
+                messagebox.showwarning("Thiếu", "Hãy chọn nhân viên và khách hàng")
+                return
+
+            if not tree.get_children():
+                messagebox.showwarning("Thiếu", "Hãy thêm sản phẩm vào hóa đơn")
+                return
+
+            id_nv = int(cbo_nv.get().split(" - ")[0])
+            id_kh = int(cbo_kh.get().split(" - ")[0])
+
+            cn = connect_mysql()
+            cur = cn.cursor()
+
+            # Insert hóa đơn
+            cur.execute("""
+                INSERT INTO hoadon(id_nv, id_khachhang, ngay_lap, tong_tien)
+                VALUES (%s, %s, %s, %s)
+            """, (id_nv, id_kh, ngay.get(), 0))
+            cn.commit()
+
+            id_hd = cur.lastrowid
+            total = 0.0
+
+            # Insert chi tiết
+            for r in tree.get_children():
+                row = tree.item(r)["values"]
+                id_sp = int(row[0])
+                so_luong = int(row[2])
+                don_gia = float(row[3])
+                thanh_tien = float(row[4])
+
+                cur.execute("""
+                    INSERT INTO ct_hoadon(id_hoadon, id_sanpham, so_luong, don_gia, thanh_tien)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (id_hd, id_sp, so_luong, don_gia, thanh_tien))
+
+                total += thanh_tien
+
+            cur.execute("UPDATE hoadon SET tong_tien=%s WHERE id_hoadon=%s", (total, id_hd))
+            cn.commit()
+
+            messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
+
+            # Mở nút in
+            btn_print.config(state="normal", command=lambda: print_invoice(id_hd))
+
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Lỗi khi lưu hóa đơn:\n{e}")
+
+        finally:
+            try:
+                cur.close()
+                cn.close()
+            except:
+                pass
+
 
 
     def print_invoice(invoice_id):
@@ -302,6 +372,75 @@ def open_invoice_window(root):
             cur.close()
             cn.close()
 
+    def export_excel():
+        try:
+            cn = connect_mysql()
+            cur = cn.cursor()
+
+            # Lấy toàn bộ danh sách hóa đơn
+            cur.execute("""
+                SELECT hd.id_hoadon, hd.ngay_lap, hd.tong_tien,
+                    nv.ho_ten AS ten_nv, kh.ho_ten AS ten_kh
+                FROM hoadon hd
+                JOIN nhanvien nv ON hd.id_nv = nv.id_nv
+                JOIN khachhang kh ON hd.id_khachhang = kh.id_khachhang
+                ORDER BY hd.id_hoadon ASC
+            """)
+            rows = cur.fetchall()
+
+            if not rows:
+                messagebox.showwarning("Thông báo", "Không có hóa đơn nào để xuất!")
+                return
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Danh sách hóa đơn"
+
+            # ====== TIÊU ĐỀ ======
+            ws.merge_cells("A1:E1")
+            ws["A1"] = "DANH SÁCH HÓA ĐƠN"
+            ws["A1"].font = Font(size=20, bold=True)
+            ws["A1"].alignment = Alignment(horizontal="center")
+
+            ws.append([])
+            ws.append(["ID Hóa đơn", "Ngày lập", "Tổng tiền", "Nhân viên", "Khách hàng"])
+
+            # Border style
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            start_row = ws.max_row + 1
+
+            # ====== GHI DỮ LIỆU ======
+            for r in rows:
+                ws.append([r[0], str(r[1]), r[2], r[3], r[4]])
+
+            # ====== THÊM BORDER ======
+            for row in ws.iter_rows(min_row=start_row, max_row=ws.max_row, min_col=1, max_col=5):
+                for cell in row:
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal="center")
+
+            filename = "Danh_sach_hoa_don.xlsx"
+            wb.save(filename)
+
+            messagebox.showinfo("Thành công", f"Đã xuất file {filename}")
+
+        except Exception as e:
+            messagebox.showerror("Lỗi", str(e))
+
+        finally:
+            try:
+                cur.close()
+                cn.close()
+            except:
+                pass
+
+
     # ---------------- NÚT LƯU + IN ----------------
     actions_frame = tk.Frame(win)
     actions_frame.pack(pady=10)
@@ -315,6 +454,8 @@ def open_invoice_window(root):
     btn_print = tk.Button(actions_frame, text="In hóa đơn", width=15, state="disabled")
     btn_print.pack(side=tk.LEFT, padx=15)
 
+    btn_export = tk.Button(actions_frame, text="Xuất Excel", width=15, command=export_excel)
+    btn_export.pack(side=tk.LEFT, padx=15)
 
 
     actions_frame.pack(anchor="center")

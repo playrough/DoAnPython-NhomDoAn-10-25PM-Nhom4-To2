@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from db import connect_mysql
 from openpyxl import Workbook
 from tkcalendar import DateEntry
+from utils import center_window
 
 
 def open_crud(root, title, table, columns, headers, fields):
@@ -10,6 +11,12 @@ def open_crud(root, title, table, columns, headers, fields):
     win.title(title)
     win.geometry("950x550")
     win.grab_set()
+    center_window(win, 950, 550)
+
+    win.transient(root)        # cửa sổ thuộc root
+    win.grab_set()             # khóa focus, root không thể tự nhảy lên
+    win.lift()                 # luôn nằm trên
+    win.focus_force()          # focus vào Toplevel
     
     # thêm tiêu đề
     lbl_title = tk.Label(win, text=title, font=("Arial", 20, "bold"), fg="blue")

@@ -5,6 +5,7 @@ from tkinter import messagebox
 from crud import open_crud
 from invoices import open_invoice_window
 from receipt import open_receipt_window
+from utils import center_window
 
 def start_app():
     try:
@@ -19,6 +20,7 @@ def start_app():
     root.title("Quản lý cửa hàng TV")
     root.geometry("900x550")
     root.configure(bg="#f5f5f5")
+    center_window(root)
 
     # Menu
     menu = tk.Menu(root)
