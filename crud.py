@@ -2,26 +2,32 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from db import connect_mysql
 from openpyxl import Workbook
-
-# Thêm thư viện DateEntry
 from tkcalendar import DateEntry
 
 
 def open_crud(root, title, table, columns, headers, fields):
     win = tk.Toplevel(root)
     win.title(title)
-    win.geometry("900x500")
+    win.geometry("950x550")
 
-    tk.Label(win, text="Tìm kiếm:").pack(anchor="w")
+    # ======= SEARCH BAR =======
+    tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))
     search_box = tk.Entry(win, width=40)
-    search_box.pack(anchor="w", pady=3)
+    search_box.pack(anchor="w", padx=10, pady=(0, 8))
 
-    frame_form = tk.LabelFrame(win, text="Thông tin")
-    frame_form.pack(fill="x", padx=5, pady=5)
+    # ======= FORM FRAME (SPLIT LEFT/RIGHT) =======
+    frame_form = tk.Frame(win)
+    frame_form.pack(fill="x", padx=10, pady=10)
 
-    # =========================
-    # LOAD NHÀ CUNG CẤP (nếu cần)
-    # =========================
+    # LEFT: FORM INPUTS
+    frame_left = tk.LabelFrame(frame_form, text="Thông tin", padx=10, pady=10)
+    frame_left.grid(row=0, column=0, sticky="nw")
+
+    # RIGHT: BUTTON PANEL
+    frame_btn = tk.Frame(frame_form)
+    frame_btn.grid(row=0, column=1, sticky="n", padx=20)
+
+    # ======= LOAD NCC IF NEEDED =======
     ncc_list = []
     if table == "sanpham":
         cn = connect_mysql()
@@ -32,55 +38,56 @@ def open_crud(root, title, table, columns, headers, fields):
 
     entries = {}
 
+    # ======= FORM INPUTS (NO VERTICAL STRETCH) =======
+
+    # Cho phép input dãn ngang
+    frame_left.columnconfigure(1, weight=1)
+
+    # Giảm spacing cho CRUD có ít dòng (nhacungcap)
+    pady_val = 4 if table == "nhacungcap" else 6
+
     for i, (label, col) in enumerate(fields):
-        tk.Label(frame_form, text=label).grid(row=i, column=0, sticky="w")
 
-        # ===============================
-        # GIỚI TÍNH = COMBOBOX
-        # ===============================
+        # LABEL
+        tk.Label(frame_left, text=label, width=18, anchor="w").grid(
+            row=i, column=0, sticky="w", padx=5, pady=pady_val
+        )
+
+        # FRAME BAO NGOÀI --> KHUYẾN KHÍCH INPUT GIỮ FORM
+        input_frame = tk.Frame(frame_left)
+        input_frame.grid(row=i, column=1, sticky="ew", padx=5, pady=pady_val)
+        input_frame.columnconfigure(0, weight=1)
+
+        # GIỚI TÍNH
         if col == "gioi_tinh":
-            ent = ttk.Combobox(frame_form, values=["Nam", "Nữ"], width=38)
-            ent.set("Nam")  # mặc định
-            ent.grid(row=i, column=1, padx=5, pady=3)
+            ent = ttk.Combobox(input_frame, values=["Nam", "Nữ"])
+            ent.set("Nam")
 
-        # ===============================
-        # NGÀY SINH = DATEENTRY
-        # ===============================
+        # NGÀY SINH
         elif col == "ngay_sinh":
-            ent = DateEntry(frame_form, date_pattern="yyyy-mm-dd", width=36)
-            ent.grid(row=i, column=1, padx=5, pady=3)
+            ent = DateEntry(input_frame, date_pattern="yyyy-mm-dd")
 
-        # ===============================
-        # NHÀ CUNG CẤP = COMBOBOX
-        # ===============================
+        # NHÀ CUNG CẤP
         elif col == "id_ncc" and table == "sanpham":
-            ent = ttk.Combobox(frame_form, values=ncc_list, width=38)
-            ent.grid(row=i, column=1, padx=5, pady=3)
+            ent = ttk.Combobox(input_frame, values=ncc_list)
 
-        # ===============================
-        # INPUT CHỈ ĐƯỢC NHẬP SỐ
-        # ===============================
+        # SỐ LƯỢNG / GIÁ (CHỈ NHẬP SỐ)
         elif col in ("so_luong", "gia"):
-            vcmd = (frame_form.register(lambda P: str.isdigit(P) or P == ""), "%P")
-            ent = tk.Entry(frame_form, width=40, validate="key", validatecommand=vcmd)
-            ent.insert(0, "1") if col == "so_luong" else ent.insert(0, "0")
-            ent.grid(row=i, column=1, padx=5, pady=3)
+            vcmd = (frame_left.register(lambda P: str.isdigit(P) or P == ""), "%P")
+            ent = tk.Entry(input_frame, validate="key", validatecommand=vcmd)
+            ent.insert(0, "1" if col == "so_luong" else "0")
 
-        # ===============================
         # INPUT THƯỜNG
-        # ===============================
         else:
-            ent = tk.Entry(frame_form, width=40)
-            ent.grid(row=i, column=1, padx=5, pady=3)
+            ent = tk.Entry(input_frame)
+
+        # dãn full width
+        ent.pack(fill="x", expand=True)
 
         entries[col] = ent
+        
 
-    frame_btn = tk.Frame(frame_form)
-    frame_btn.grid(row=0, column=2, rowspan=len(fields), padx=10)
-
-    # ================================================================
-    # CHỨC NĂNG NÚT
-    # ================================================================
+        
     def clear_form():
         for e in entries.values():
             e.delete(0, tk.END)
@@ -99,14 +106,10 @@ def open_crud(root, title, table, columns, headers, fields):
 
     def add_data():
         data_values = []
-
         for col in columns[1:]:
             val = entries[col].get().strip()
-
-            # xử lý Ncc
             if col == "id_ncc" and table == "sanpham":
                 val = val.split(" - ")[0] if val else None
-
             data_values.append(val)
 
         try:
@@ -115,8 +118,8 @@ def open_crud(root, title, table, columns, headers, fields):
             sql = f"INSERT INTO {table} ({', '.join(columns[1:])}) VALUES ({','.join(['%s']*len(data_values))})"
             cur.execute(sql, tuple(data_values))
             cn.commit()
-            load_data()
             clear_form()
+            load_data()
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
@@ -141,8 +144,8 @@ def open_crud(root, title, table, columns, headers, fields):
             sql = f"UPDATE {table} SET {set_str} WHERE {columns[0]}=%s"
             cur.execute(sql, tuple(values + [pk]))
             cn.commit()
-            load_data()
             clear_form()
+            load_data()
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
@@ -152,15 +155,17 @@ def open_crud(root, title, table, columns, headers, fields):
             messagebox.showwarning("Chọn dòng", "Hãy chọn dòng cần xóa")
             return
         pk = tree.item(sel[0])["values"][0]
+
         if not messagebox.askyesno("Xác nhận", "Bạn có chắc muốn xóa?"):
             return
+
         try:
             cn = connect_mysql()
             cur = cn.cursor()
             cur.execute(f"DELETE FROM {table} WHERE {columns[0]}=%s", (pk,))
             cn.commit()
-            load_data()
             clear_form()
+            load_data()
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
@@ -182,34 +187,37 @@ def open_crud(root, title, table, columns, headers, fields):
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
-    # Buttons
-    tk.Button(frame_btn, text="Thêm", width=12, command=add_data).pack(pady=3)
-    tk.Button(frame_btn, text="Sửa", width=12, command=update_data).pack(pady=3)
-    tk.Button(frame_btn, text="Xóa", width=12, command=delete_data).pack(pady=3)
-    tk.Button(frame_btn, text="Mới", width=12, command=clear_form).pack(pady=3)
-    tk.Button(frame_btn, text="Xuất Excel", width=12, command=export_excel).pack(pady=3)
-    tk.Button(frame_btn, text="Tải lại", width=12, command=load_data).pack(pady=3)
+    # ======= BUTTONS (WITH NICE SPACING) =======
+    for text, cmd in [
+        ("Thêm", add_data),
+        ("Sửa", update_data),
+        ("Xóa", delete_data),
+        ("Mới", clear_form),
+        ("Xuất Excel", export_excel),
+        ("Tải lại", load_data),
+    ]:
+        tk.Button(frame_btn, text=text, width=15, command=cmd).pack(pady=6)
 
-    frame_tbl = tk.Frame(win)
+    # ======= TABLE VIEW WITH GOOD SPACE =======
+    frame_tbl = tk.Frame(win, padx=10, pady=10)
     frame_tbl.pack(fill="both", expand=True)
 
     tree = ttk.Treeview(frame_tbl, columns=columns, show="headings")
     for c, h in zip(columns, headers):
         tree.heading(c, text=h)
-        tree.column(c, width=120)
-    tree.pack(fill="both", expand=True)
+        tree.column(c, width=150, anchor="center")
+    tree.pack(fill="both", expand=True, padx=5, pady=5)
 
-    # Khi chọn dòng → đổ vào form
     def select_row(e):
         sel = tree.selection()
         if not sel:
             return
+
         row = tree.item(sel[0])["values"]
 
         for i, c in enumerate(columns):
             if c in entries:
 
-                # ncc -> convert "1" > "1 - Samsung"
                 if c == "id_ncc" and table == "sanpham":
                     for item in ncc_list:
                         if item.startswith(f"{row[i]} -"):
@@ -221,4 +229,5 @@ def open_crud(root, title, table, columns, headers, fields):
                 entries[c].insert(0, row[i])
 
     tree.bind("<<TreeviewSelect>>", select_row)
+
     load_data()
