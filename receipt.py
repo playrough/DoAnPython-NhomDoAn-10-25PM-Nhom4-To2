@@ -2,12 +2,14 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date
 from db import connect_mysql
+from utils import center_window
 
 
 def open_receipt_window(root):
     win = tk.Toplevel(root)
     win.title("Lập Phiếu Nhập")
-    win.geometry("750x550")
+
+    center_window(win, 900, 700)
     
     lbl_title = tk.Label(win, text="Phiếu Nhập", font=("Arial", 20, "bold"), fg="blue")
     lbl_title.pack(pady=(10, 5)) 

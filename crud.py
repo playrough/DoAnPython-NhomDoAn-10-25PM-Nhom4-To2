@@ -9,9 +9,8 @@ from utils import center_window
 def open_crud(root, title, table, columns, headers, fields):
     win = tk.Toplevel(root)
     win.title(title)
-    win.geometry("950x550")
     win.grab_set()
-    center_window(win, 950, 550)
+    center_window(win, 800, 500)
 
     win.transient(root)        # cửa sổ thuộc root
     win.grab_set()             # khóa focus, root không thể tự nhảy lên
@@ -23,9 +22,22 @@ def open_crud(root, title, table, columns, headers, fields):
     lbl_title.pack(pady=(10, 5))
 
     # ======= SEARCH BAR =======
-    tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))
-    search_box = tk.Entry(win, width=40)
-    search_box.pack(anchor="w", padx=10, pady=(0, 8))
+    # tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))
+    # search_box = tk.Entry(win, width=40)
+    # search_box.pack(anchor="w", padx=10, pady=(0, 8))
+
+    # ======= SEARCH BAR (ENTRY + BUTTON) =======
+    frm_search = tk.Frame(win)
+    frm_search.pack(fill="x", padx=10, pady=(8, 2))
+    frm_search.columnconfigure(0, weight=1)
+
+    tk.Label(frm_search, text="Tìm kiếm:").grid(row=0, column=0, sticky="w")
+    search_box = tk.Entry(frm_search)
+    search_box.grid(row=1, column=0, sticky="ew", pady=(0, 0))
+
+    btn_search = tk.Button(frm_search, text="Tìm kiếm")
+    btn_search.grid(row=1, column=1, padx=(5,0))
+
 
     # ======= FORM FRAME (SPLIT LEFT/RIGHT) =======
     frame_form = tk.Frame(win)
@@ -96,6 +108,27 @@ def open_crud(root, title, table, columns, headers, fields):
 
         entries[col] = ent
         
+
+    def search_data():
+        keyword = search_box.get().strip()
+        for r in tree.get_children():
+            tree.delete(r)
+        try:
+            cn = connect_mysql()
+            cur = cn.cursor()
+            if keyword == "":
+                cur.execute(f"SELECT {', '.join(columns)} FROM {table}")
+            else:
+                # tạo câu lệnh LIKE cho từng cột text
+                like_clauses = " OR ".join([f"{c} LIKE %s" for c in columns[1:]])
+                sql = f"SELECT {', '.join(columns)} FROM {table} WHERE {like_clauses}"
+                params = [f"%{keyword}%"] * (len(columns)-1)
+                cur.execute(sql, params)
+            for row in cur.fetchall():
+                tree.insert("", "end", values=row)
+            cn.close()
+        except Exception as e:
+            messagebox.showerror("Lỗi", str(e))
 
         
     def clear_form():
@@ -207,6 +240,9 @@ def open_crud(root, title, table, columns, headers, fields):
         ("Tải lại", load_data),
     ]:
         tk.Button(frame_btn, text=text, width=15, command=cmd).pack(pady=6)
+
+    btn_search.config(command=search_data)
+
 
     # ======= TABLE VIEW ======
     frame_tbl = tk.Frame(win, padx=10, pady=10)

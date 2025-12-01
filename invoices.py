@@ -11,7 +11,6 @@ from utils import center_window
 def open_invoice_window(root):
     win = tk.Toplevel(root)
     win.title("Lập hóa đơn")
-    win.geometry("950x680")
 
     win.transient(root)        # cửa sổ thuộc root
     win.grab_set()             # khóa focus, root không thể tự nhảy lên
@@ -203,45 +202,6 @@ def open_invoice_window(root):
     # ===========================================================
     #                       LƯU / IN HÓA ĐƠN
     # ===========================================================
-    # def save_invoice():
-    #     if not cbo_nv.get() or not cbo_kh.get():
-    #         messagebox.showwarning("Thiếu", "Hãy chọn nhân viên và khách hàng")
-    #         return
-
-    #     id_nv = int(cbo_nv.get().split(" - ")[0])
-    #     id_kh = int(cbo_kh.get().split(" - ")[0])
-
-    #     cn = connect_mysql()
-    #     cur = cn.cursor()
-    #     cur.execute("INSERT INTO hoadon(id_nv,id_khachhang,ngay_lap,tong_tien) VALUES (%s,%s,%s,%s)",
-    #                 (id_nv, id_kh, ngay.get(), 0))
-    #     cn.commit()
-
-    #     id_hd = cur.lastrowid
-    #     global last_invoice_id
-    #     last_invoice_id = cur.lastrowid
-    #     total = 0.0
-
-    #     for r in tree.get_children():
-    #         row = tree.item(r)["values"]
-    #         id_sp = int(row[0])
-    #         so_luong = int(row[2])
-    #         don_gia = float(row[3])
-    #         thanh_tien = float(row[4])
-
-    #         cur.execute("INSERT INTO ct_hoadon(id_hoadon,id_sanpham,so_luong,don_gia,thanh_tien) "
-    #                     "VALUES (%s,%s,%s,%s,%s)",
-    #                     (id_hd, id_sp, so_luong, don_gia, thanh_tien))
-    #         total += thanh_tien
-
-    #     cur.execute("UPDATE hoadon SET tong_tien=%s WHERE id_hoadon=%s", (total, id_hd))
-    #     cn.commit()
-
-    #     messagebox.showinfo("OK", f"Đã lưu hóa đơn {id_hd}")
-        
-    #     # Bật nút in và gán ID vừa lưu
-    #     btn_print.config(state="normal", command=lambda: print_invoice(id_hd))
-
     def save_invoice():
         try:
             if not cbo_nv.get() or not cbo_kh.get():
@@ -413,7 +373,7 @@ def open_invoice_window(root):
                 bottom=Side(style='thin')
             )
 
-            start_row = ws.max_row + 1
+            start_row = ws.max_row
 
             # ====== GHI DỮ LIỆU ======
             for r in rows:

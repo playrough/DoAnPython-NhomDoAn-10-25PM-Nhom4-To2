@@ -18,9 +18,8 @@ def start_app():
 
     root = tk.Tk()
     root.title("Quản lý cửa hàng TV")
-    root.geometry("900x550")
     root.configure(bg="#f5f5f5")
-    center_window(root)
+    center_window(root, 800, 450)
 
     # Menu
     menu = tk.Menu(root)
