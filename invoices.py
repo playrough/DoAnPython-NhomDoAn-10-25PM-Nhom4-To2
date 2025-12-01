@@ -274,5 +274,18 @@ def open_invoice_window(root):
             messagebox.showerror("Lỗi", str(e))
 
     tk.Button(frame_sp, text="Thêm SP", command=add_item).grid(row=0, column=6, padx=5)
-    tk.Button(win, text="Lưu hóa đơn", width=15, command=save_invoice).pack(pady=5)
-    tk.Button(win, text="In hóa đơn", width=15, command=print_invoice).pack(pady=5)
+
+    actions_frame = tk.Frame(win)
+    actions_frame.pack(pady=10)
+
+    
+    btn_save = tk.Button(actions_frame, text="Lưu hóa đơn", width=15, command=save_invoice)
+    btn_print = tk.Button(actions_frame, text="In hóa đơn", width=15, command=print_invoice)
+    
+
+    # căn giữa + đặt ngang nhau
+    btn_save.pack(side=tk.LEFT, padx=10)
+    btn_print.pack(side=tk.LEFT, padx=10)
+    
+    # căn giữa toàn bộ khung nút
+    actions_frame.pack(anchor="center")
