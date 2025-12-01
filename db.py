@@ -4,7 +4,7 @@ from mysql.connector import errorcode
 DB_CONFIG = {
     "host": "127.0.0.1",
     "user": "root",
-    "password": "iat",
+    "password": "",
     "database": "ql_cuahang_tivi"
 }
 
