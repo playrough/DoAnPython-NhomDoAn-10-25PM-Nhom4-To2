@@ -41,7 +41,7 @@ def open_invoice_window(root):
     product_list = load_product()
 
     # ===========================================================
-    #           THÔNG TIN HÓA ĐƠN  (UI CHUẨN – GỌN – ĐẸP)
+    #           THÔNG TIN HÓA ĐƠN
     # ===========================================================
     frame_info = tk.LabelFrame(win, text="Thông tin hóa đơn", padx=10, pady=10)
     frame_info.pack(fill="x", padx=10, pady=10)
@@ -51,8 +51,7 @@ def open_invoice_window(root):
 
     # -------------------- NHÂN VIÊN --------------------
     tk.Label(frame_info, text="Nhân viên:").grid(row=0, column=0, sticky="w", pady=4)
-    cbo_nv = ttk.Combobox(frame_info,
-                          values=[f"{r[0]} - {r[1]}" for r in staff_list])
+    cbo_nv = ttk.Combobox(frame_info, values=[f"{r[0]} - {r[1]}" for r in staff_list])
     cbo_nv.grid(row=0, column=1, sticky="ew", padx=5, pady=4)
 
     tk.Label(frame_info, text="Tên NV:").grid(row=1, column=0, sticky="w")
@@ -140,8 +139,7 @@ def open_invoice_window(root):
     frame_sp.columnconfigure(5, weight=1)
 
     tk.Label(frame_sp, text="Chọn sản phẩm:").grid(row=0, column=0, sticky="w")
-    cbo_sp = ttk.Combobox(frame_sp,
-                          values=[f"{r[0]} - {r[1]}" for r in product_list])
+    cbo_sp = ttk.Combobox(frame_sp, values=[f"{r[0]} - {r[1]}" for r in product_list])
     cbo_sp.grid(row=0, column=1, sticky="ew", padx=5)
 
     tk.Label(frame_sp, text="Giá:").grid(row=0, column=2, sticky="w")

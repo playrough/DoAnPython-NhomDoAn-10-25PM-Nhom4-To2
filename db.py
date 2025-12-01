@@ -109,6 +109,19 @@ def create_database_and_tables():
     ) ENGINE=InnoDB;
     """)
     cur.execute("""
+    CREATE TABLE IF NOT EXISTS chitiet_phieunhap (
+        id_ct INT AUTO_INCREMENT PRIMARY KEY,
+        id_phieunhap INT,
+        id_sanpham INT,
+        so_luong INT,
+        don_gia DECIMAL(15,2),
+    
+        FOREIGN KEY (id_phieunhap) REFERENCES phieunhap(id_phieunhap)
+            ON DELETE CASCADE,
+        FOREIGN KEY (id_sanpham) REFERENCES sanpham(id_sanpham)
+    ) ENGINE=InnoDB;
+    """)
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS hoadon (
         id_hoadon INT AUTO_INCREMENT PRIMARY KEY,
         id_nv INT,
@@ -136,36 +149,114 @@ def create_database_and_tables():
     cn.close()
     return True
 
-def insert_sample_data_if_new():
 
-    # Insert sample data only if DB was just created.
+def insert_sample_data_if_new():
     cn = connect_mysql(use_database=True)
     cur = cn.cursor()
-    # check if any table has rows - if yes, skip (extra safety)
+
+    # check if DB already has data
     cur.execute("SELECT COUNT(*) FROM nhacungcap")
     if cur.fetchone()[0] > 0:
         cur.close()
         cn.close()
         return
 
-    # insert simple sample
-    cur.executemany("INSERT INTO nhacungcap(ten_ncc, dia_chi, sdt) VALUES (%s,%s,%s)", [
+    # ---------------------------
+    # Insert nhà cung cấp
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO nhacungcap(ten_ncc, dia_chi, sdt)
+        VALUES (%s,%s,%s)
+    """, [
         ("Công ty Samsung Vina", "HCM", "02839157310"),
         ("Sony Electronics VN", "Hà Nội", "1800588885"),
+        ("LG Việt Nam", "HCM", "02838882345"),
+        ("Toshiba Supply", "Hà Nội", "0243556677")
     ])
-    cur.executemany("INSERT INTO nhanvien(ho_ten,gioi_tinh,ngay_sinh,sdt,dia_chi,chuc_vu) VALUES (%s,%s,%s,%s,%s,%s)", [
-        ("Nguyễn Văn An","Nam","1990-05-15","0909123456","HCM","Quản lý"),
-        ("Trần Thị Bình","Nu","1995-08-20","0918887777","Đà Nẵng","Thu ngân"),
+
+    # ---------------------------
+    # Insert nhân viên
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO nhanvien(ho_ten, gioi_tinh, ngay_sinh, sdt, dia_chi, chuc_vu)
+        VALUES (%s,%s,%s,%s,%s,%s)
+    """, [
+        ("Nguyễn Văn An", "Nam", "1990-05-15", "0909123456", "HCM", "Quản lý"),
+        ("Trần Thị Bình", "Nu", "1995-08-20", "0918887777", "Đà Nẵng", "Thu ngân"),
+        ("Lê Văn Nam", "Nam", "1987-03-10", "0932334455", "HCM", "Kho"),
+        ("Phạm Thị Hoa", "Nu", "1998-11-05", "0923456677", "Hà Nội", "Bán hàng")
     ])
-    cur.executemany("INSERT INTO khachhang(ho_ten,gioi_tinh,ngay_sinh,sdt,dia_chi) VALUES (%s,%s,%s,%s,%s)", [
-        ("Phạm Minh Tuấn","Nam","1988-01-01","0909000000","HCM"),
-        ("Đỗ Thúy Hằng","Nu","1992-02-02","0919000000","Hà Nội"),
+
+    # ---------------------------
+    # Insert khách hàng
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO khachhang(ho_ten, gioi_tinh, ngay_sinh, sdt, dia_chi)
+        VALUES (%s,%s,%s,%s,%s)
+    """, [
+        ("Phạm Minh Tuấn", "Nam", "1988-01-01", "0909000000", "HCM"),
+        ("Đỗ Thúy Hằng", "Nu", "1992-02-02", "0919000000", "Hà Nội"),
+        ("Ngô Minh Đức", "Nam", "1995-05-12", "0988776655", "HCM"),
+        ("Trần Thu Trang", "Nu", "1999-07-07", "0977665544", "Đà Nẵng"),
     ])
-    # products with stock (tồn kho)
-    cur.executemany("INSERT INTO sanpham(ten_sanpham,id_ncc,gia,so_luong,mo_ta) VALUES (%s,%s,%s,%s,%s)", [
+
+    # ---------------------------
+    # Insert sản phẩm
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO sanpham(ten_sanpham, id_ncc, gia, so_luong, mo_ta)
+        VALUES (%s,%s,%s,%s,%s)
+    """, [
         ("Smart TV Samsung 50 inch", 1, 12500000, 20, "Smart 4K 50\""),
         ("Android TV Sony 43 inch", 2, 9800000, 15, "Android 43\""),
+        ("Tivi LG 55 inch OLED", 3, 21500000, 10, "OLED 55\""),
+        ("Tủ lạnh Toshiba Inverter", 4, 8900000, 8, "Inverter 300L")
     ])
+
+    # ---------------------------
+    # Insert phiếu nhập
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO phieunhap(id_nv, id_ncc, ngay_nhap, tong_tien)
+        VALUES (%s,%s,%s,%s)
+    """, [
+        (3, 1, "2024-01-10", 25000000),
+        (3, 2, "2024-02-12", 19600000),
+    ])
+
+    # ---------------------------
+    # Insert chi tiết phiếu nhập
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO chitiet_phieunhap(id_phieunhap, id_sanpham, so_luong, don_gia)
+        VALUES (%s,%s,%s,%s)
+    """, [
+        (1, 1, 2, 12500000),   # 2 TV Samsung
+        (2, 2, 2, 9800000),    # 2 Sony TV
+    ])
+
+    # ---------------------------
+    # Insert hóa đơn
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO hoadon(id_nv, id_khachhang, ngay_lap, tong_tien)
+        VALUES (%s,%s,%s,%s)
+    """, [
+        (4, 1, "2024-03-01", 12500000),
+        (4, 2, "2024-03-05", 9800000),
+    ])
+
+    # ---------------------------
+    # Insert chi tiết hóa đơn
+    # ---------------------------
+    cur.executemany("""
+        INSERT INTO ct_hoadon(id_hoadon, id_sanpham, so_luong, don_gia, thanh_tien)
+        VALUES (%s,%s,%s,%s,%s)
+    """, [
+        (1, 1, 1, 12500000, 12500000),
+        (2, 2, 1, 9800000, 9800000),
+    ])
+
     cn.commit()
     cur.close()
     cn.close()

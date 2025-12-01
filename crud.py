@@ -39,7 +39,6 @@ def open_crud(root, title, table, columns, headers, fields):
 
     entries = {}
 
-    # ======= FORM INPUTS (NO VERTICAL STRETCH) =======
 
     # Cho phép input dãn ngang
     frame_left.columnconfigure(1, weight=1)
@@ -54,7 +53,6 @@ def open_crud(root, title, table, columns, headers, fields):
             row=i, column=0, sticky="w", padx=5, pady=pady_val
         )
 
-        # FRAME BAO NGOÀI --> KHUYẾN KHÍCH INPUT GIỮ FORM
         input_frame = tk.Frame(frame_left)
         input_frame.grid(row=i, column=1, sticky="ew", padx=5, pady=pady_val)
         input_frame.columnconfigure(0, weight=1)
@@ -188,7 +186,7 @@ def open_crud(root, title, table, columns, headers, fields):
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
-    # ======= BUTTONS (WITH NICE SPACING) =======
+    # ======= BUTTONS =======
     for text, cmd in [
         ("Thêm", add_data),
         ("Sửa", update_data),
@@ -199,7 +197,7 @@ def open_crud(root, title, table, columns, headers, fields):
     ]:
         tk.Button(frame_btn, text=text, width=15, command=cmd).pack(pady=6)
 
-    # ======= TABLE VIEW WITH GOOD SPACE =======
+    # ======= TABLE VIEW ======
     frame_tbl = tk.Frame(win, padx=10, pady=10)
     frame_tbl.pack(fill="both", expand=True)
 
