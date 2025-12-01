@@ -9,6 +9,9 @@ def open_invoice_window(root):
     win = tk.Toplevel(root)
     win.title("Lập hóa đơn")
     win.geometry("950x680")
+    
+    lbl_title = tk.Label(win, text="Hóa Đơn", font=("Arial", 20, "bold"), fg="blue")
+    lbl_title.pack(pady=(10, 5))
 
     # ================================
     # TẢI DỮ LIỆU

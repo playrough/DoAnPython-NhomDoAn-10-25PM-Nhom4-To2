@@ -10,6 +10,10 @@ def open_crud(root, title, table, columns, headers, fields):
     win.title(title)
     win.geometry("950x550")
     win.grab_set()
+    
+    # thêm tiêu đề
+    lbl_title = tk.Label(win, text=title, font=("Arial", 20, "bold"), fg="blue")
+    lbl_title.pack(pady=(10, 5))
 
     # ======= SEARCH BAR =======
     tk.Label(win, text="Tìm kiếm:").pack(anchor="w", padx=10, pady=(8, 2))

@@ -8,6 +8,9 @@ def open_receipt_window(root):
     win = tk.Toplevel(root)
     win.title("Lập Phiếu Nhập")
     win.geometry("750x550")
+    
+    lbl_title = tk.Label(win, text="Phiếu Nhập", font=("Arial", 20, "bold"), fg="blue")
+    lbl_title.pack(pady=(10, 5)) 
 
     # ===== LẤY DANH SÁCH NHÂN VIÊN =====
     cn = connect_mysql()
